@@ -73,7 +73,7 @@ class WaypointUpdater(object):
     	previous_waypoint = self.waypoints_2d[closest_idx - 1]
 
     	closest_vect = np.array(closest_waypoint)
-    	previous_vect = np.array(previous_vect)
+    	previous_vect = np.array(previous_waypoint)
     	position_vect = np.array([position_x,position_y])
 
     	val = np.dot(closest_vect - previous_vect , position_vect - closest_vect)
@@ -87,7 +87,7 @@ class WaypointUpdater(object):
     def publish_waypoints(self, closest_idx):
     	msg = Lane()
     	msg.header = self.base_waypoints.header
-    	msg.Waypoints = self.base_waypoints.Waypoints[closest_idx : closest_idx + LOOKAHEAD_WPS]
+    	msg.waypoints = self.base_waypoints.waypoints[closest_idx : closest_idx + LOOKAHEAD_WPS]
     	self.final_waypoints_pub.publish(msg)
 
 
