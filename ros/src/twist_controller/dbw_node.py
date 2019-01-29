@@ -58,6 +58,17 @@ class DBWNode(object):
 
         # TODO: Subscribe to all the topics you need to
 
+        rospy.Subscriber('/current_velocity' , TwistStamped , self.velocity_cb)
+        rospy.Subscriber('/twist_cmd' , TwistStamped , self.twist_cb)
+        rospy.Subscriber('/vehicle/dbw_enabled' , Bool , self.dbw_cb)
+
+        # TODO: add member variables
+
+        self.current_velocity = None
+        self.linear_velocity = None
+        self.angular_velocity = None
+        self.dbw_enabled = None
+
         self.loop()
 
     def loop(self):
@@ -73,6 +84,16 @@ class DBWNode(object):
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
             rate.sleep()
+
+    def velocity_cb(self,msg):
+    	self.current_velocity = msg.twist.linear.x
+
+    def twist_cb(self,msg):
+    	self.linear_velocity = msg.twist.linear.x
+    	self.angular_velocity = msg.twist.angular.z
+
+    def dbw_cb(self,msg):
+        self.dbw_enabled = msg.data
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
