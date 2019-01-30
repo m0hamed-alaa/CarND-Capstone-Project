@@ -54,7 +54,9 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # TODO: Create `Controller` object
-        # self.controller = Controller(<Arguments you wish to provide>)
+        
+        min_speed = 0.1
+        self.controller = Controller(wheel_base, steer_ratio, min_speed, max_lat_accel, max_steer_angle , vehicle_mass , wheel_radius , decel_limit)
 
         # TODO: Subscribe to all the topics you need to
 
@@ -68,6 +70,8 @@ class DBWNode(object):
         self.linear_velocity = None
         self.angular_velocity = None
         self.dbw_enabled = None
+        self.throttle = self.brake = self.steering = 0.0
+
 
         self.loop()
 
@@ -81,6 +85,11 @@ class DBWNode(object):
             #                                                     <current linear velocity>,
             #                                                     <dbw status>,
             #                                                     <any other argument you need>)
+            
+            if not (self.linear_velocity==None or self.angular_velocity==None or self.current_velocity==None):
+            	self.throttle , self.brake , self.steering = self.controller.control(self.linear_velocity , self.angular_velocity , self.current_velocity , self.dbw_enabled)
+            if self.dbw_enabled:
+            	self.publish(self.throttle,self.brake,self.steering)
             # if <dbw is enabled>:
             #   self.publish(throttle, brake, steer)
             rate.sleep()
@@ -93,7 +102,7 @@ class DBWNode(object):
     	self.angular_velocity = msg.twist.angular.z
 
     def dbw_cb(self,msg):
-        self.dbw_enabled = msg.data
+        self.dbw_enabled = msg
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
