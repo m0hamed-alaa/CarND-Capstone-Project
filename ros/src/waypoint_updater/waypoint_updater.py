@@ -23,7 +23,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 20 # Number of waypoints we will publish. You can change this number
 
 
 class WaypointUpdater(object):
@@ -66,7 +66,7 @@ class WaypointUpdater(object):
     	position_y = self.position.pose.position.y
 
     	# get closest waypoint to the car's position
-    	closest_idx = self.waypoints_tree.query([position_y,position_y] , 1)[1]
+    	closest_idx = self.waypoints_tree.query([position_x,position_y] , 1)[1]
 
     	# check if this waypoint is ahead or behind the car
     	closest_waypoint = self.waypoints_2d[closest_idx]
