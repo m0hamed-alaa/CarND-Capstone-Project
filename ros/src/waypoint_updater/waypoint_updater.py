@@ -160,7 +160,7 @@ class WaypointUpdater(object):
     	farthest_wp_idx = closest_wp_idx + LOOKAHEAD_WPS
     	lane_waypoints = self.base_waypoints.waypoints[closest_wp_idx : farthest_wp_idx]
 
-    	if self.stopline_wp_idx == -1 or stopline_wp_idx > farthest_wp_idx :
+    	if self.stopline_wp_idx == -1 or self.stopline_wp_idx > farthest_wp_idx :
     		lane.waypoints = lane_waypoints
     	
     	else :
