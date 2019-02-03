@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math
 import numpy as np
@@ -24,7 +25,7 @@ TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
 LOOKAHEAD_WPS = 20 # Number of waypoints we will publish. You can change this number
-
+MAX_DECEL = 0.5
 
 class WaypointUpdater(object):
     def __init__(self):
@@ -35,6 +36,7 @@ class WaypointUpdater(object):
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
 
+        rospy.Subscriber('/traffic_waypoint' , Int32 , self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
@@ -43,6 +45,8 @@ class WaypointUpdater(object):
         self.base_waypoints = None
         self.waypoints_2d = None
         self.waypoints_tree = None
+
+        self.stopline_wp_idx = -1
 
         self.loop()
         
@@ -53,15 +57,13 @@ class WaypointUpdater(object):
     	while not rospy.is_shutdown():
     		if self.position and self.base_waypoints :
     			# get closest waypoint
-    			closest_waypoint_idx = self.get_closest_waypoint_id()
-    			self.publish_waypoints(closest_waypoint_idx)
+    			lane = self.generate_lane()
+    			self.publish_waypoints(lane)
     		rate.sleep()
-
 
 
     def get_closest_waypoint_id(self):
 
-    	
     	position_x = self.position.pose.position.x
     	position_y = self.position.pose.position.y
 
@@ -84,17 +86,15 @@ class WaypointUpdater(object):
     	return closest_idx
 
 
-    def publish_waypoints(self, closest_idx):
-    	msg = Lane()
-    	msg.header = self.base_waypoints.header
-    	msg.waypoints = self.base_waypoints.waypoints[closest_idx : closest_idx + LOOKAHEAD_WPS]
-    	self.final_waypoints_pub.publish(msg)
+    def publish_waypoints(self, msg):
 
+    	self.final_waypoints_pub.publish(msg)
 
 
     def pose_cb(self, msg):
         
         self.position = msg
+
 
     def waypoints_cb(self, waypoints):
         
@@ -104,28 +104,70 @@ class WaypointUpdater(object):
         	self.waypoints_tree = KDTree(self.waypoints_2d)
 
 
-
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        
+        self.stopline_wp_idx = msg
+
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
         pass
 
+
     def get_waypoint_velocity(self, waypoint):
+
         return waypoint.twist.twist.linear.x
 
+
     def set_waypoint_velocity(self, waypoints, waypoint, velocity):
+
         waypoints[waypoint].twist.twist.linear.x = velocity
 
+
     def distance(self, waypoints, wp1, wp2):
+
         dist = 0
         dl = lambda a, b: math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2  + (a.z-b.z)**2)
         for i in range(wp1, wp2+1):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
+
         return dist
+
+
+    def decelerate_waypoints(self,lane_waypoints , closest_wp_idx):
+
+    	temp = []
+    	for i , p in enumerate(lane_waypoints):
+    		wp = Waypoint()
+    		wp.pose = p.pose
+    		stop_idx = max(self.stopline_wp_idx - closest_wp_idx - 2 , 0.0)
+    		wp_dist = self.distance(lane_waypoints, i , stop_idx)
+    		wp_velocity = math.sqrt(2 * MAX_DECEL * wp_dist)
+    		if wp_velocity < 1.0:
+    			wp_velocity = 0.0
+    		wp.twist.twist.linear.x = min(wp_velocity , p.twist.twist.linear.x)
+    		temp.append(wp)
+
+    	return temp
+
+
+    def generate_lane(self):
+    	
+    	lane = Lane()
+    	lane.header = self.base_waypoints.header
+    	closest_wp_idx = self.get_closest_waypoint_id()
+    	farthest_wp_idx = closest_wp_idx + LOOKAHEAD_WPS
+    	lane_waypoints = self.base_waypoints.waypoints[closest_wp_idx : farthest_wp_idx]
+
+    	if self.stopline_wp_idx == -1 or stopline_wp_idx > farthest_wp_idx :
+    		lane.waypoints = lane_waypoints
+    	
+    	else :
+    		lane.wayponits = self.decelerate_waypoints(lane_waypoints , closest_wp_idx)
+
+    	return lane
+
 
 
 if __name__ == '__main__':
