@@ -106,7 +106,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         
-        self.stopline_wp_idx = msg
+        self.stopline_wp_idx = msg.data
 
 
     def obstacle_cb(self, msg):
@@ -141,7 +141,7 @@ class WaypointUpdater(object):
     	for i , p in enumerate(lane_waypoints):
     		wp = Waypoint()
     		wp.pose = p.pose
-    		stop_idx = max(self.stopline_wp_idx - closest_wp_idx - 2 , 0.0)
+    		stop_idx = max(self.stopline_wp_idx - closest_wp_idx - 3 , 0)
     		wp_dist = self.distance(lane_waypoints, i , stop_idx)
     		wp_velocity = math.sqrt(2 * MAX_DECEL * wp_dist)
     		if wp_velocity < 1.0:
@@ -160,11 +160,11 @@ class WaypointUpdater(object):
     	farthest_wp_idx = closest_wp_idx + LOOKAHEAD_WPS
     	lane_waypoints = self.base_waypoints.waypoints[closest_wp_idx : farthest_wp_idx]
 
-    	if self.stopline_wp_idx == -1 or self.stopline_wp_idx > farthest_wp_idx :
+    	if self.stopline_wp_idx == -1 or self.stopline_wp_idx >= farthest_wp_idx :
     		lane.waypoints = lane_waypoints
     	
     	else :
-    		lane.wayponits = self.decelerate_waypoints(lane_waypoints , closest_wp_idx)
+    		lane.waypoints = self.decelerate_waypoints(lane_waypoints , closest_wp_idx)
 
     	return lane
 
